@@ -1,8 +1,8 @@
-setwd('~/Documents')
+setwd('\\\\corp.bloomberg.com/ny-dfs/users/ngupta93/Desktop/6242')
 load('movies_merged')
 library("ggplot2")
 library('stringi')
-library(plyr)
+library('plyr')
 library("splitstackshape")
 library("scales")
 
@@ -18,9 +18,9 @@ cat("Average Runtime :", mean(movies_df$Runtime, na.rm=TRUE))
 cat("Standard Deviation Runtime :", sd(movies_df$Runtime, na.rm=TRUE))
 
 g_1<-ggplot(movies_df, aes(Runtime)) + geom_histogram(col="red", 
-                                                   fill="green", 
-                                                   alpha = .5,
-                                                   binwidth =4)  + ggtitle("Histogram of Runtime of Movies Dataset")
+                                                      fill="green", 
+                                                      alpha = .5,
+                                                      binwidth =4)  + ggtitle("Histogram of Runtime of Movies Dataset")
 print(g_1)
 
 g_1<-ggplot(na.omit(movies_df[,c("Year","Runtime")]), aes(Year, Runtime)) + geom_point() + geom_smooth(span=0.2) + ggtitle("Two way relationship: Year/Runtime")
@@ -34,8 +34,8 @@ print(g_1)
 genre_dict = list()
 genre_list=sort(unique(unlist(strsplit(as.character(movies_df$Genre),", "))))
 movies_df<-dcast.data.table(cSplit(movies_df, "Genre", ", ", "long"), 
-                       ... ~ Genre, value.var = "Genre", 
-                       fun.aggregate = length)
+                            ... ~ Genre, value.var = "Genre", 
+                            fun.aggregate = length)
 
 for (column in genre_list)
   genre_dict[[column]] <- sum(movies_df[,get(column)])
@@ -49,5 +49,53 @@ melt_genre$fraction = melt_genre$value / sum(melt_genre$value)
 g_2<- ggplot(melt_genre, aes(x="", y=value, fill=L1)) + geom_bar(width = 1, stat = "identity") + coord_polar("y", start=0) + geom_text(aes(y = value/3 + c(0, cumsum(value)[-length(value)]), label=paste(format(round(fraction*100, 2)),"%"), size=1)) + ggtitle("Pie chart showing the proportion of each genre")
 print(g_2)
 
-g_1<-ggplot(movies_df, aes(Action, Gross)) + geom_point() + ggtitle("Box plot of Genre and Gross")
+movies_df_gross = subset(movies_df, !is.na(Gross))
+print(nrow(movies_df_gross))
+movies_df_gross_2 = list()
+
+for (column in names(genre_dict[1:10]))
+  movies_df_gross_2[[column]] <- movies_df_gross$Gross[movies_df_gross[,get(column)]==1]
+
+g_1<-ggplot(melt(movies_df_gross_2), aes(L1, value)) + geom_boxplot() + ggtitle("Box plot of Genre and Gross")
 print(g_1)
+
+#Question 4
+
+movies_df_year = subset(movies_df, !is.na(Released))
+movies_df_year$Released <- stri_sub(movies_df_year$Released, 0, -7)
+movies_df_year$Released <-as.numeric(as.character(movies_df_year$Released))
+orig_movies = nrow(movies_df_year)
+movies_df_year<-subset(movies_df_year, Released == Year | Released == Year+1)
+cat("Number of movies removed based on Year/Released mismatch :", orig_movies, "-", nrow(movies_df_year), " = ", orig_movies-nrow(movies_df_year))
+
+#Question 5
+
+movies_df_year = subset(movies_df, !is.na(Released) & !is.na(Gross))
+movies_df_year$Released <- stri_sub(movies_df_year$Released, 6, 7)
+movies_df_year$Released <-as.numeric(as.character(movies_df_year$Released))
+
+df <- data.frame(month = movies_df_year$Released,
+                 GrossRevenue = movies_df_year$Gross)
+
+df <- melt(df ,  id.vars = 'month')
+
+g_1<-ggplot(df, aes(month,value)) +  geom_point() + geom_smooth(span=.2)  +  ggtitle("Month of the year VS Total Gross Revenue")
+print(g_1)
+
+genre_list=sort(unique(unlist(strsplit(as.character(movies_df_year$Genre),", "))))
+
+df<-data.frame(Genre=character(), Month=numeric(), Gross=numeric(), stringsAsFactors = FALSE)
+
+for (column in names(genre_dict[1:10]))
+  df <- rbind(df, data.frame(Genre = column, Month= movies_df_year$Released[movies_df_year[,get(column)] == 1], 
+                             Gross= movies_df_year$Gross[movies_df_year[,get(column)] == 1]))
+
+g_1<-ggplot(df, aes(Month, Gross)) + geom_boxplot(aes(colour = Genre)) + geom_smooth(span=0.2) + ggtitle("Box plot of Gross/Month/Genre")
+print(g_1)
+
+df<-(ddply(df, .(Month, Genre), summarize,  Average_Gross=mean(Gross)))
+g_1<-ggplot(df, aes(Month, Average_Gross)) + geom_point(aes(colour = Genre)) + geom_smooth(span=0.2) + ggtitle("Three way relationship: Average_Gross/Month/Genre")
+print(g_1)
+
+#Question 6
+
