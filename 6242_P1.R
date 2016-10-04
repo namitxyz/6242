@@ -99,3 +99,30 @@ print(g_1)
 
 #Question 6
 
+movies_df = subset(movies_merged, Type == "movie")
+
+df<-data.frame(Imdb_Rating=numeric(), Tomato_Critic_Rating=numeric(), Tomato_User_Rating = numeric(), Gross=numeric(), stringsAsFactors = FALSE)
+
+df <- rbind(df, data.frame(Gross = movies_df$Gross, Tomato_User_Rating = movies_df$tomatoUserRating,
+                           Tomato_Critic_Rating = movies_df$tomatoRating, Imdb_Rating = movies_df$imdbRating))
+
+df<-subset(df, !is.na(Gross) & !is.na(Tomato_User_Rating) & !is.na(Tomato_Critic_Rating) & !is.na(Imdb_Rating))
+print(cor(df))
+
+g_1<-ggplot(df, aes(Tomato_Critic_Rating, Tomato_User_Rating)) + geom_point() + geom_smooth(span=0.2) + ggtitle("Relationship between Tomato Critic Rating and Tomato User Rating")
+print(g_1)
+
+g_1<-ggplot(df, aes(Tomato_Critic_Rating, Imdb_Rating)) + geom_point() + geom_smooth(span=0.2) + ggtitle("Relationship between Tomato Critic Rating and IMBDB User Rating")
+print(g_1)
+
+g_1<-ggplot(df, aes(Tomato_User_Rating, Imdb_Rating)) + geom_point() + geom_smooth(span=0.2) + ggtitle("Relationship between Tomato User Rating and IMBDB User Rating")
+print(g_1)
+
+g_1<-ggplot(df, aes(Imdb_Rating, Gross)) + geom_point() + geom_smooth(span=0.2) + ggtitle("Relationship between Gross Revenue and IMBDB User Rating")
+print(g_1)
+
+g_1<-ggplot(df, aes(Tomato_Critic_Rating, Gross)) + geom_point() + geom_smooth(span=0.2) + ggtitle("Relationship between Gross Revenue and Tomato Critic Rating")
+print(g_1)
+
+g_1<-ggplot(df, aes(Tomato_User_Rating, Gross)) + geom_point() + geom_smooth(span=0.2) + ggtitle("Relationship between Gross Revenue and Tomato User Rating")
+print(g_1)
