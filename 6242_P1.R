@@ -1,4 +1,3 @@
-setwd('\\\\corp.bloomberg.com/ny-dfs/users/ngupta93/Desktop/6242')
 load('movies_merged')
 library("ggplot2")
 library('stringi')
@@ -126,3 +125,29 @@ print(g_1)
 
 g_1<-ggplot(df, aes(Tomato_User_Rating, Gross)) + geom_point() + geom_smooth(span=0.2) + ggtitle("Relationship between Gross Revenue and Tomato User Rating")
 print(g_1)
+
+#Question 7
+
+movies_df$Awards[movies_df$Awards == 'N/A'] = 0
+
+l<-numeric()
+for (single_string in as.character(gsub(("[^0-9]"), ",", movies_df$Awards)))
+{
+  y<-unlist(strsplit(single_string, ","))
+  y<-y[y!=""]
+  y<-(sum(as.numeric(y)))
+  l<-c(l, y)
+}
+
+df<-data.frame(award_string=character(), award_integer=numeric(), Gross = numeric(), no_awards = numeric(), some_awards = numeric(), many_awards = numeric(), stringsAsFactors = FALSE)
+df <- rbind(df, data.frame(award_string = movies_df$Awards, award_integer = l, Gross = movies_df$Gross))
+
+Threshold = 5
+df$no_awards[df$award_integer == 0] = 1
+df$no_awards[df$award_integer != 0] = 0
+
+df$some_awards[df$award_integer > 0 & df$award_integer <= Threshold] = 1
+df$some_awards[df$award_integer == 0 | df$award_integer > Threshold] = 0
+
+df$many_awards[df$award_integer > Threshold] = 1
+df$many_awards[df$award_integer <= Threshold] = 0
