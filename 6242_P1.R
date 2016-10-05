@@ -142,7 +142,14 @@ for (single_string in as.character(gsub(("[^0-9]"), ",", movies_df$Awards)))
 df<-data.frame(award_string=character(), award_integer=numeric(), Gross = numeric(), no_awards = numeric(), some_awards = numeric(), many_awards = numeric(), stringsAsFactors = FALSE)
 df <- rbind(df, data.frame(award_string = movies_df$Awards, award_integer = l, Gross = movies_df$Gross))
 
-Threshold = 5
+df<-subset(df, !is.na(Gross))
+g_1<-ggplot(df, aes(award_integer)) + geom_histogram(col="red", 
+                                                     fill="green", 
+                                                     alpha = .5,
+                                                     binwidth =30)  + ggtitle("Histogram of Number of awards/nominations etc for a movie")
+print(g_1)
+
+Threshold = 50
 df$no_awards[df$award_integer == 0] = 1
 df$no_awards[df$award_integer != 0] = 0
 
@@ -151,3 +158,48 @@ df$some_awards[df$award_integer == 0 | df$award_integer > Threshold] = 0
 
 df$many_awards[df$award_integer > Threshold] = 1
 df$many_awards[df$award_integer <= Threshold] = 0
+
+df_2<-data.frame(Awards=character(), Gross=numeric(), stringsAsFactors = FALSE)
+df_2<-rbind(df_2, data.frame(Awards = "no_awards", Gross = df$Gross[df$no_awards == 1]))
+df_2<-rbind(df_2, data.frame(Awards = "some_awards", Gross = df$Gross[df$some_awards == 1]))
+df_2<-rbind(df_2, data.frame(Awards = "many_awards", Gross = df$Gross[df$many_awards == 1]))
+
+g_1<-ggplot(df_2, aes(Awards, Gross)) + geom_boxplot(aes(colour = Awards)) + geom_smooth(span=0.2) + ggtitle("Box plot of awards and nominations with respect to Gross Revenue")
+print(g_1)
+
+#Question 8
+
+g_1<-ggplot(na.omit(movies_df[,c("Budget","Gross")]), aes(Budget, Gross)) + geom_line() + geom_smooth(span=0.2) + ggtitle("Two way relationship: Budget/Gross")
+print(g_1)
+
+g_1<-ggplot(na.omit(movies_df[,c("Year", "Budget")]), aes(Year, Budget)) + geom_line() + geom_smooth(span=0.2) + ggtitle("Two way relationship: Budget/Year")
+print(g_1)
+
+language_dict = list()
+language_list=sort(unique(unlist(strsplit(as.character(movies_df$Language),", "))))
+movies_df<-dcast.data.table(cSplit(movies_df, "Language", ", ", "long"), 
+                            ... ~ Language, value.var = "Language", 
+                            fun.aggregate = length)
+
+language_list = language_list[language_list!= " Ancient (to 1453)"]
+language_list = language_list[language_list!= " Old"]
+language_list = language_list[language_list!= "N/A"]
+for (column in language_list)
+  language_dict[[column]] <- sum(movies_df[,get(column)])
+
+language_dict<-(language_dict[order(-unlist(language_dict))])
+melt_language = melt(language_dict[2:6])
+g_1 <- ggplot(melt_language,aes(L1,value)) + geom_bar(fill="darkseagreen",stat="identity") + xlab("") + labs(title = "Histogram of Languages for the top 5 Languages excluding english")
+print(g_1)
+
+df_2<-data.frame(Language=character(), Budget=numeric(), Year=numeric())
+movies_df= subset(movies_df, !is.na(Budget) & Budget != 0)
+
+df_2<-rbind(df_2, data.frame(Language = "French", Budget = movies_df$Budget[movies_df$French == 1 & movies_df$English != 1]))
+df_2<-rbind(df_2, data.frame(Language = "German", Budget = movies_df$Budget[movies_df$German == 1 & movies_df$English != 1]))
+df_2<-rbind(df_2, data.frame(Language = "Italian", Budget = movies_df$Budget[movies_df$Italian == 1 & movies_df$English != 1]))
+df_2<-rbind(df_2, data.frame(Language = "Russian", Budget = movies_df$Budget[movies_df$Russian == 1 & movies_df$English != 1]))
+df_2<-rbind(df_2, data.frame(Language = "Spanish", Budget = movies_df$Budget[movies_df$Spanish == 1 & movies_df$English != 1]))
+
+g_1<-ggplot(df_2, aes(Language, Budget)) + geom_boxplot(aes(colour = Language)) + geom_smooth(span=0.2) + ggtitle("Box plot of non-english movie languages with respect to Budget")
+print(g_1)
