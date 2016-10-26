@@ -1,4 +1,7 @@
 require(mlbench)
+library(ggplot2)
+library(reshape)
+
 data(BreastCancer)
 BreastCancer$Id <- NULL 
 BreastCancer <- na.omit(BreastCancer) 
@@ -39,7 +42,7 @@ gradDescent<-function(x, y, theta, alpha, num_iterations)
   return(list(theta, J))
 }
 
-LogisticRegression <-function(x,y, NUMBER_ITERATIONS = 15000, ALPHA = .01)
+LogisticRegression <-function(x,y, NUMBER_ITERATIONS, ALPHA)
 {
   x<-cbind(rep(1, nrow(x)), x)
   theta<-rep(0,ncol(x))
@@ -52,7 +55,7 @@ LogisticRegression <-function(x,y, NUMBER_ITERATIONS = 15000, ALPHA = .01)
   return(theta)
 }
 
-Question_1<-function(BreastCancer, split_ratio = 0.7)
+FindErrorsForLogisticRegression<-function(BreastCancer, split_ratio = 0.7, NUMBER_ITERATIONS = 15000, ALPHA = .01)
 {
   epsilon = 0.5
   result = SplitDataFrame(BreastCancer, split_ratio)
@@ -63,7 +66,7 @@ Question_1<-function(BreastCancer, split_ratio = 0.7)
   test_x = data.matrix(test_set[, !colnames(test_set) %in% c("Class")])
   test_y = data.matrix(test_set$Class)
   
-  theta = LogisticRegression(train_x, train_y)
+  theta = LogisticRegression(train_x, train_y, NUMBER_ITERATIONS, ALPHA)
   pred_train_y = HypothesisFunction(cbind(rep(1, nrow(train_x)), train_x), theta)
   pred_test_y = HypothesisFunction(cbind(rep(1, nrow(test_x)), test_x), theta)
   
@@ -77,14 +80,75 @@ Question_1<-function(BreastCancer, split_ratio = 0.7)
   test_prediction_df$pred_test_y[test_prediction_df$pred_test_y + epsilon >= 1.0] <-1
   test_prediction_df$pred_test_y[test_prediction_df$pred_test_y + epsilon <  1.0] <-0
   test_prediction_df$error = abs(test_prediction_df$pred_test_y - test_prediction_df$test_y)
-  print("")
-  cat("Percentage of correct predictions in test set :", 1 - sum(test_prediction_df$error)/nrow(test_x))
+  cat("\nPercentage of correct predictions in test set :", 1 - sum(test_prediction_df$error)/nrow(test_x))
   
-  error_training = 1 - sum(train_prediction_df$error)/nrow(train_x)
-  error_test     = 1 - sum(test_prediction_df$error)/nrow(test_x)
+  error_training = sum(train_prediction_df$error)/nrow(train_x)
+  error_test     = sum(test_prediction_df$error)/nrow(test_x)
   
   return(list(error_training, error_test))
 }
 
-set.seed(13)
-errors = Question_1(BreastCancer, 0.5)
+Question_1<-function()
+{
+  error_training <- rep(0, 10)
+  error_test     <- rep(0, 10)
+  
+  for(i in 1:10)
+  {
+    set.seed(i)
+    errors = FindErrorsForLogisticRegression(BreastCancer, split_ratio = 0.7, NUMBER_ITERATIONS = 15000, ALPHA = .1)
+    error_training[i] = errors[[1]]
+    error_test[i] = errors[[2]]
+  }
+  
+  cat("Average error on training set with split ratio of 70/30, 15000 iterations and alpha 0.01 :", mean(error_training))
+  cat("\nAverage error on test set with split ratio of 70/30, 15000 iterations and alpha 0.01 :", mean(error_test))
+  
+  error_training <- rep(0, 100)
+  error_test     <- rep(0, 100)
+  iterations     <-rep(0, 100)
+  set.seed(10)
+  
+  for(i in 1:100)
+  {
+    errors = FindErrorsForLogisticRegression(BreastCancer, split_ratio = 0.7, NUMBER_ITERATIONS = i*200, ALPHA = .1)
+    error_training[i] = errors[[1]]
+    error_test[i] = errors[[2]]
+    iterations[i] = i * 200
+  }
+  
+  df <- data.frame(N = iterations,
+                   training_error = error_training,
+                   test_error = error_test)
+  
+  df <- melt(df ,  id.vars = 'N', variable.name = 'series')
+  
+  g_1<-ggplot(df, aes(N,value)) + geom_line(aes(colour=variable)) + ggtitle("training error and test error as a function of number of iterations")
+  
+  print(g_1)
+  
+  error_training <- rep(0, 100)
+  error_test     <- rep(0, 100)
+  iterations     <-rep(0, 100)
+  set.seed(10)
+  
+  for(i in 1:100)
+  {
+    errors = FindErrorsForLogisticRegression(BreastCancer, split_ratio = 0.7, NUMBER_ITERATIONS = 15000, ALPHA = i *.001 )
+    error_training[i] = errors[[1]] * errors[[1]]
+    error_test[i] = errors[[2]] * errors[[2]]
+    iterations[i] = i * 0.001
+  }
+  
+  df <- data.frame(N = iterations,
+                   training_error = error_training,
+                   test_error = error_test)
+  
+  df <- melt(df ,  id.vars = 'N', variable.name = 'series')
+  
+  g_1<-ggplot(df, aes(N,value)) + geom_line(aes(colour=variable)) + ggtitle("squared-training error and squared-test error as a function of alpha")
+  
+  print(g_1)
+}
+
+Question_1()
