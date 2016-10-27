@@ -52,7 +52,7 @@ LogisticRegression <-function(x,y, NUMBER_ITERATIONS, ALPHA)
   theta <- results[[1]]
   J <- results[[2]]
   
-  #plot(1:NUMBER_ITERATIONS, J, type = 'l')
+  plot(1:NUMBER_ITERATIONS, J, type = 'l')
   return(theta)
 }
 
@@ -121,7 +121,23 @@ GLMErrorsForLogisticRegression<-function(BreastCancer, split_ratio = 0.7, NUMBER
   error_training = sum(train_prediction_df$error)/nrow(train_x)
   error_test     = sum(test_prediction_df$error)/nrow(test_x)
   
-  return(list(error_training, error_test))
+  test_set_1 <- test_set[test_set$Class == 1,]
+  test_set_0 <- test_set[test_set$Class == 0,]
+  test_x_1   <- data.matrix(test_set_1[, !colnames(test_set_1) %in% c("Class")])
+  test_x_0   <- data.matrix(test_set_0[, !colnames(test_set_0) %in% c("Class")])
+  
+  train_set_1 <- train_set[train_set$Class == 1,]
+  train_set_0 <- train_set[train_set$Class == 0,]
+  train_x_1   <- data.matrix(train_set_1[, !colnames(train_set_1) %in% c("Class")])
+  train_x_0   <- data.matrix(train_set_0[, !colnames(train_set_0) %in% c("Class")])
+  
+  LL_test  = sum(log(    predict(model, test_x_1, s=0.01, type = 'response'))) + 
+             sum(log(1 - predict(model, test_x_0, s=0.01, type = 'response')))
+  
+  LL_train = sum(log(    predict(model, train_x_1, s=0.01, type = 'response'))) + 
+             sum(log(1 - predict(model, train_x_0, s=0.01, type = 'response')))
+  
+  return(list(error_training, error_test, LL_train, LL_test))
 }
 
 Question_3<-function()
@@ -147,9 +163,19 @@ Question_3<-function()
   
   for(i in 1:100)
   {
-    errors = FindErrorsForLogisticRegression(BreastCancer, split_ratio = 0.7, NUMBER_ITERATIONS = i*200, ALPHA = .1)
-    error_training[i] = errors[[1]] * errors[[1]]
-    error_test[i] = errors[[2]] * errors[[2]]
+    error_training_v2 <- rep(0, 10)
+    error_test_v2     <- rep(0, 10)
+    
+    for(j in 1:10)
+    {
+      set.seed(j)
+      errors = FindErrorsForLogisticRegression(BreastCancer, split_ratio = 0.7, NUMBER_ITERATIONS = i*200, ALPHA = .1)
+      error_training_v2[j] = errors[[1]] * errors[[1]]
+      error_test_v2[j] = errors[[2]] * errors[[2]]
+    }
+    
+    error_training[i] = mean(error_training_v2)
+    error_test[i] = mean(error_test_v2)
     iterations[i] = i * 200
   }
   
@@ -159,7 +185,7 @@ Question_3<-function()
   
   df <- melt(df ,  id.vars = 'N', variable.name = 'series')
   
-  g_1<-ggplot(df, aes(N,value)) + geom_line(aes(colour=variable)) + ggtitle("squared-training error and squared-test error as a function of number of iterations")
+  g_1<-ggplot(df, aes(N,value)) + geom_line(aes(colour=variable)) + ggtitle("mean-training error and mean-test error as a function of number of iterations")
   
   print(g_1)
   
@@ -170,9 +196,19 @@ Question_3<-function()
   
   for(i in 1:100)
   {
-    errors = FindErrorsForLogisticRegression(BreastCancer, split_ratio = 0.7, NUMBER_ITERATIONS = 15000, ALPHA = i *.001 )
-    error_training[i] = errors[[1]] * errors[[1]]
-    error_test[i] = errors[[2]] * errors[[2]]
+    error_training_v2 <- rep(0, 10)
+    error_test_v2     <- rep(0, 10)
+    
+    for(j in 1:10)
+    {
+      set.seed(j)
+      errors = FindErrorsForLogisticRegression(BreastCancer, split_ratio = 0.7, NUMBER_ITERATIONS = 15000, ALPHA = i *.001)
+      error_training_v2[j] = errors[[1]] * errors[[1]]
+      error_test_v2[j] = errors[[2]] * errors[[2]]
+    }
+    
+    error_training[i] = mean(error_training_v2)
+    error_test[i] = mean(error_test_v2)
     iterations[i] = i * 0.001
   }
   
@@ -182,7 +218,7 @@ Question_3<-function()
   
   df <- melt(df ,  id.vars = 'N', variable.name = 'series')
   
-  g_1<-ggplot(df, aes(N,value)) + geom_line(aes(colour=variable)) + ggtitle("squared-training error and squared-test error as a function of alpha")
+  g_1<-ggplot(df, aes(N,value)) + geom_line(aes(colour=variable)) + ggtitle("mean-training error and mean-test error as a function of alpha")
   
   print(g_1)
 }
@@ -210,10 +246,20 @@ Question_4<-function()
   
   for(i in 1:100)
   {
-    errors = GLMErrorsForLogisticRegression(BreastCancer, split_ratio = 0.7, NUMBER_ITERATIONS = i*200, ALPHA = .1)
-    error_training[i] = errors[[1]] * errors[[1]]
-    error_test[i] = errors[[2]] * errors[[2]]
-    iterations[i] = i * 200
+    error_training_v2 <- rep(0, 10)
+    error_test_v2     <- rep(0, 10)
+    
+    for(j in 1:10)
+    {
+      set.seed(j)
+      errors = GLMErrorsForLogisticRegression(BreastCancer, split_ratio = 0.7, NUMBER_ITERATIONS = i*3, ALPHA = .1)
+      error_training_v2[j] = errors[[1]] * errors[[1]]
+      error_test_v2[j] = errors[[2]] * errors[[2]]
+    }
+    
+    error_training[i] = mean(error_training_v2)
+    error_test[i] = mean(error_test_v2)
+    iterations[i] = i * 3
   }
   
   df <- data.frame(N = iterations,
@@ -222,7 +268,7 @@ Question_4<-function()
   
   df <- melt(df ,  id.vars = 'N', variable.name = 'series')
   
-  g_1<-ggplot(df, aes(N,value)) + geom_line(aes(colour=variable)) + ggtitle("squared-training error and squared-test error as a function of number of iterations")
+  g_1<-ggplot(df, aes(N,value)) + geom_line(aes(colour=variable)) + ggtitle("mean training error and mean test error as a function of number of iterations")
   
   print(g_1)
   
@@ -233,9 +279,19 @@ Question_4<-function()
   
   for(i in 1:100)
   {
-    errors = GLMErrorsForLogisticRegression(BreastCancer, split_ratio = 0.7, NUMBER_ITERATIONS = 15000, ALPHA = i *.001 )
-    error_training[i] = errors[[1]] * errors[[1]]
-    error_test[i] = errors[[2]] * errors[[2]]
+    error_training_v2 <- rep(0, 10)
+    error_test_v2     <- rep(0, 10)
+    
+    for(j in 1:10)
+    {
+      set.seed(j)
+      errors = GLMErrorsForLogisticRegression(BreastCancer, split_ratio = 0.7, NUMBER_ITERATIONS = 15000, ALPHA = i *.001)
+      error_training_v2[j] = errors[[1]] * errors[[1]]
+      error_test_v2[j] = errors[[2]] * errors[[2]]
+    }
+    
+    error_training[i] = mean(error_training_v2)
+    error_test[i] = mean(error_test_v2)
     iterations[i] = i * 0.001
   }
   
@@ -245,18 +301,18 @@ Question_4<-function()
   
   df <- melt(df ,  id.vars = 'N', variable.name = 'series')
   
-  g_1<-ggplot(df, aes(N,value)) + geom_line(aes(colour=variable)) + ggtitle("squared-training error and squared-test error as a function of alpha")
+  g_1<-ggplot(df, aes(N,value)) + geom_line(aes(colour=variable)) + ggtitle("mean training error and mean test error as a function of alpha")
   
   print(g_1)
 }
 
 Question_5<-function()
 {
-  error_training <- rep(0, 49)
-  error_test     <- rep(0, 49)
-  iterations     <-rep(0, 49)
+  error_training <- rep(0, 19)
+  error_test     <- rep(0, 19)
+  iterations     <-rep(0, 19)
   
-  for(i in 1:49)
+  for(i in 1:19)
   {
     error_training_v2 <- rep(0, 10)
     error_test_v2     <- rep(0, 10)
@@ -264,14 +320,14 @@ Question_5<-function()
     for(j in 1:10)
     {
       set.seed(j)
-      errors = GLMErrorsForLogisticRegression(BreastCancer, split_ratio = i*0.02, NUMBER_ITERATIONS = 15000, ALPHA = .1)
+      errors = GLMErrorsForLogisticRegression(BreastCancer, split_ratio = i*0.05, NUMBER_ITERATIONS = 15000, ALPHA = .1)
       error_training_v2[j] = errors[[1]] * errors[[1]]
       error_test_v2[j] = errors[[2]] * errors[[2]]
     }
     
     error_training[i] = mean(error_training_v2)
     error_test[i] = mean(error_test_v2)
-    iterations[i] = i * 0.02 * nrow(BreastCancer)
+    iterations[i] = i * 0.05 * nrow(BreastCancer)
   }
   
   df <- data.frame(N = iterations,
@@ -280,10 +336,47 @@ Question_5<-function()
   
   df <- melt(df ,  id.vars = 'N', variable.name = 'series')
   
-  g_1<-ggplot(df, aes(N,value)) + geom_line(aes(colour=variable)) + ggtitle("squared-training error and squared-test error as a function of number of samples in training set")
+  g_1<-ggplot(df, aes(N,value)) + geom_line(aes(colour=variable)) + ggtitle("mean-training error and mean-test error as a function of number of samples in training set")
   
   print(g_1)
 }
-#Question_3()
-#Question_4()
-#Question_5()
+
+Question_6<-function()
+{
+  LL_training <- rep(0, 19)
+  LL_test     <- rep(0, 19)
+  iterations     <-rep(0, 19)
+  
+  for(i in 1:19)
+  {
+    LL_training_v2 <- rep(0, 10)
+    LL_test_v2     <- rep(0, 10)
+    
+    for(j in 1:10)
+    {
+      set.seed(j)
+      LL = GLMErrorsForLogisticRegression(BreastCancer, split_ratio = i*0.05, NUMBER_ITERATIONS = 15000, ALPHA = .1)
+      LL_training_v2[j] = LL[[3]] 
+      LL_test_v2[j] = LL[[4]] 
+    }
+    
+    LL_training[i] = mean(LL_training_v2)
+    LL_test[i] = mean(LL_test_v2)
+    iterations[i] = i * 0.05 * nrow(BreastCancer)
+  }
+  
+  df <- data.frame(N = iterations,
+                   training_log_likelihood = LL_training,
+                   test_log_likelihood = LL_test)
+  
+  df <- melt(df ,  id.vars = 'N', variable.name = 'series')
+  
+  g_1<-ggplot(df, aes(N,value)) + geom_line(aes(colour=variable)) + ggtitle("negative log likelihood of training set and test set as a function of number of samples in training set")
+  
+  print(g_1)
+}
+
+Question_3()
+Question_4()
+Question_5()
+Question_6()
