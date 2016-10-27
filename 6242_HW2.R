@@ -366,8 +366,8 @@ Question_6<-function()
   }
   
   df <- data.frame(N = iterations,
-                   training_log_likelihood = LL_training,
-                   test_log_likelihood = LL_test)
+                   training_log_likelihood = -1*LL_training,
+                   test_log_likelihood = -1*LL_test)
   
   df <- melt(df ,  id.vars = 'N', variable.name = 'series')
   
